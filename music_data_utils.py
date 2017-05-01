@@ -709,57 +709,60 @@ class MusicDataLoader(object):
         midi_files[genre][composer] = []
         for url in sources[genre][composer]:
           print url
-          response = urllib2.urlopen(url)
-          #if 'classicalmidi' in url:
-          #  headers = response.info()
-          #  print headers
-          data = response.read()
-
-          #htmlinks = re.findall('"(  ?[^"]+\.htm)"', data)
-          #for link in htmlinks:
-          #  print 'http://www.classicalmidi.co.uk/'+strip(link)
-          
-          # make urls absolute:
-          urlparsed = urlparse.urlparse(url)
-          data = re.sub('href="\/', 'href="http://'+urlparsed.hostname+'/', data, flags= re.IGNORECASE)
-          data = re.sub('href="(?!http:)', 'href="http://'+urlparsed.hostname+urlparsed.path[:urlparsed.path.rfind('/')]+'/', data, flags= re.IGNORECASE)
-          #if 'classicalmidi' in url:
-          #  print data
-          
-          links = re.findall('"(http://[^"]+\.mid)"', data)
-          for link in links:
-            cont = False
-            for p in ignore_patterns:
-              if p in link:
-                print 'Not downloading links with {}'.format(p)
-                cont = True
-                continue
-            if cont: continue
-            print link
-            filename = link.split('/')[-1]
-            valid_chars = "-_.()%s%s" % (string.ascii_letters, string.digits)
-            filename = ''.join(c for c in filename if c in valid_chars)
-            print genre+'/'+composer+'/'+filename
-            midi_files[genre][composer].append(filename)
-            localdir = os.path.join(os.path.join(self.datadir, genre), composer)
-            localpath = os.path.join(localdir, filename)
-            if os.path.exists(localpath):
-              print 'File exists. Not redownloading: {}'.format(localpath)
-            else:
-              try:
-                response_midi = urllib2.urlopen(link)
-                try: os.makedirs(localdir)
-                except: pass
-                data_midi = response_midi.read()
-                if 'DOCTYPE html PUBLIC' in data_midi:
-                  print 'Seems to have been served an html page instead of a midi file. Continuing with next file.'
-                elif 'RIFF' in data_midi[0:9]:
-                  print 'Seems to have been served an RIFF file instead of a midi file. Continuing with next file.'
+          try:
+              response = urllib2.urlopen(url)
+              #if 'classicalmidi' in url:
+              #  headers = response.info()
+              #  print headers
+              data = response.read()
+    
+              #htmlinks = re.findall('"(  ?[^"]+\.htm)"', data)
+              #for link in htmlinks:
+              #  print 'http://www.classicalmidi.co.uk/'+strip(link)
+              
+              # make urls absolute:
+              urlparsed = urlparse.urlparse(url)
+              data = re.sub('href="\/', 'href="http://'+urlparsed.hostname+'/', data, flags= re.IGNORECASE)
+              data = re.sub('href="(?!http:)', 'href="http://'+urlparsed.hostname+urlparsed.path[:urlparsed.path.rfind('/')]+'/', data, flags= re.IGNORECASE)
+              #if 'classicalmidi' in url:
+              #  print data
+              
+              links = re.findall('"(http://[^"]+\.mid)"', data)
+              for link in links:
+                cont = False
+                for p in ignore_patterns:
+                  if p in link:
+                    print 'Not downloading links with {}'.format(p)
+                    cont = True
+                    continue
+                if cont: continue
+                print link
+                filename = link.split('/')[-1]
+                valid_chars = "-_.()%s%s" % (string.ascii_letters, string.digits)
+                filename = ''.join(c for c in filename if c in valid_chars)
+                print genre+'/'+composer+'/'+filename
+                midi_files[genre][composer].append(filename)
+                localdir = os.path.join(os.path.join(self.datadir, genre), composer)
+                localpath = os.path.join(localdir, filename)
+                if os.path.exists(localpath):
+                  print 'File exists. Not redownloading: {}'.format(localpath)
                 else:
-                  with open(localpath, 'w') as f:
-                    f.write(data_midi)
-              except:
-                print 'Failed to fetch {}'.format(link)
+                  try:
+                    response_midi = urllib2.urlopen(link)
+                    try: os.makedirs(localdir)
+                    except: pass
+                    data_midi = response_midi.read()
+                    if 'DOCTYPE html PUBLIC' in data_midi:
+                      print 'Seems to have been served an html page instead of a midi file. Continuing with next file.'
+                    elif 'RIFF' in data_midi[0:9]:
+                      print 'Seems to have been served an RIFF file instead of a midi file. Continuing with next file.'
+                    else:
+                      with open(localpath, 'w') as f:
+                        f.write(data_midi)
+                  except:
+                    print 'Failed to fetch {}'.format(link)
+          except urllib2.HTTPError:
+              print "Failed to fetch {}".format(link)
     with open(os.path.join(self.datadir, 'do-not-redownload.txt'), 'w') as f:
       f.write('This directory is considered completely downloaded.')
 
